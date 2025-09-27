@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "a backend for inventory management system",
   "type": "module",
-  "main": "index.ts",
+  "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/index.ts"
+    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
   },
   "keywords": [
     "javascript",
@@ -17,5 +17,10 @@
     "nodemon": "^3.1.10",
     "prettier": "^3.6.2",
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "mongoose": "^8.18.2"
   }
 }
