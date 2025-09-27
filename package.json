@@ -1,0 +1,20 @@
+{
+  "name": "verto-invertory",
+  "version": "1.0.0",
+  "description": "a backend for inventory management system",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "dev": "nodemon src/index.ts"
+  },
+  "keywords": [
+    "javascript",
+    "backend"
+  ],
+  "author": "anagha",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.10",
+    "typescript": "^5.9.2"
+  }
+}
