@@ -1,4 +1,4 @@
-import { Actions } from "@src/constants";
+import { Actions } from "../constants";
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IStockLog extends Document {

@@ -2,7 +2,8 @@ import express, { Application } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import homeRouter from "./routes/home.route";
-import productRouter from "./routes/product.route"; 
+import userRouter from "./routes/user.route";
+import productRoute from "./routes/product.route";
 
 const app: Application = express();
 
@@ -12,7 +13,8 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 
-app.use("/api/v1", homeRouter);
-app.use("/api/v1/product", productRouter);
+app.use("/", homeRouter);
+app.use("/api/v1/user", userRouter);
+app.use("/api/v1/product", productRoute);
 
 export { app };

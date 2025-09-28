@@ -7,4 +7,4 @@ function bodyDataExists(...fields: (string | number | undefined)[]): boolean {
   });
 };
 
-export { bodyDataExists };
+export { bodyDataExists }

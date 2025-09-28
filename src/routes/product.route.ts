@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { validateRequestBody, validateCreateProduct} from "../middlewares/validation"
+import { validateCreateProduct} from "../middlewares/validation.middleware"
 import {
   addNewProduct
 } from "../controllers/product.controller";
 
 const productRoute = Router();
 
-productRoute.route("/addProduct").post(validateRequestBody, validateCreateProduct, addNewProduct)
+productRoute.route("/addProduct").post(validateCreateProduct, addNewProduct)
 
 export default productRoute;
