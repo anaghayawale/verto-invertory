@@ -3,13 +3,14 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface IProduct extends Document {
   productId?: string;
   productName: string;
-  description?: string;
+  description: string;
   stockQuantity: number;
   lowStockThreshold: number;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdBy: mongoose.Types.ObjectId;
+  updatedBy: mongoose.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
 }
-
 
 const ProductSchema: Schema<IProduct> = new Schema(
   {
@@ -22,6 +23,7 @@ const ProductSchema: Schema<IProduct> = new Schema(
     },
     description: {
       type: String,
+      required: [true, "Product description is required"],
       trim: true,
       maxlength: [500, "Description cannot exceed 500 characters"],
     },
@@ -37,17 +39,26 @@ const ProductSchema: Schema<IProduct> = new Schema(
       min: [0, "Low stock threshold cannot be negative"],
       default: 10,
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "Created by user is required"],
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "Updated by user is required"],
+    },
   },
   {
     timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },
-    versionKey: false,
     toJSON: {
-       transform: function(doc, ret) {
+      transform: function (doc, ret: any) {
         ret.productId = ret._id?.toString();
         delete ret._id;
         return ret;
-      }
-    }
+      },
+    },
   }
 );
 
@@ -62,7 +73,6 @@ ProductSchema.pre<IProduct>("save", function (next) {
 
   next();
 });
-
 
 export const Product: Model<IProduct> = mongoose.model<IProduct>(
   "Product",
