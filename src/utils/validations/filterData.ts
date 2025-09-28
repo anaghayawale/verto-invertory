@@ -6,5 +6,4 @@ function isNumber(value: unknown): boolean {
   return typeof value === "number" && !isNaN(value);
 }
 
-
 export { isEmptyValue, isNumber }

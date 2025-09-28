@@ -19,20 +19,6 @@ const addNewProduct = asyncHandler(
       lowStockThreshold?: number;
     } = req.body;
 
-    // Check if product with same productName already exists
-    const existingProduct: IProduct | null = await Product.findOne({
-      productName: productName.trim(),
-    });
-
-    if (existingProduct) {
-      return res
-        .status(400)
-        .json(
-          new ApiResponse(400, "Product with this productName already exists")
-        );
-    }
-
-    // Create new product instance
     const product = new Product({
       productName: productName.trim(),
       description: description || "",
@@ -40,7 +26,6 @@ const addNewProduct = asyncHandler(
       lowStockThreshold: lowStockThreshold || 10,
     });
 
-    // Save the product
     const savedProduct: IProduct = await product.save();
 
     if (!savedProduct) {

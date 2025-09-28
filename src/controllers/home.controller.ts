@@ -1,16 +1,17 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiResponse } from "../utils/ApiResponse";
+import packagejson from "../../package.json";
 
 // ------------------------- Home Route -------------------------
 
-const version = asyncHandler(async function (req: Request, res: Response): Promise<void> {
+const version = asyncHandler(async function (_, res: Response){
     res.status(200).json(
-        new ApiResponse(200, "New-Server: 1.1.0")
+        new ApiResponse(200, packagejson.version)
     );
 });
 
-const healthCheck = asyncHandler(async function (req: Request, res: Response): Promise<void> {
+const healthCheck = asyncHandler(async function (_, res: Response){
     res.status(200).json(
         new ApiResponse(200, "Health Check Passed")
     );

@@ -39,7 +39,7 @@ const ProductSchema: Schema<IProduct> = new Schema(
     },
   },
   {
-    timestamps: { createdAt: "creastedAt", updatedAt: "updatedAt" },
+    timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },
     versionKey: false,
     toJSON: {
        transform: function(doc, ret) {

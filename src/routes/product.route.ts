@@ -4,8 +4,8 @@ import {
   addNewProduct
 } from "../controllers/product.controller";
 
-const router = Router();
+const productRoute = Router();
 
-router.route("/addProduct").post(validateRequestBody, validateCreateProduct, addNewProduct)
+productRoute.route("/addProduct").post(validateRequestBody, validateCreateProduct, addNewProduct)
 
-export default router;
+export default productRoute;

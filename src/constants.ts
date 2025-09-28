@@ -1,1 +1,1 @@
-export const DB_NAME: string = "verto-inventory"
+export const DB_NAME = "verto-inventory"

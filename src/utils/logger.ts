@@ -1,11 +1,9 @@
 import winston from "winston";
 
-// Define log format
 const logFormat = winston.format.printf(({ level, message, timestamp, stack }) => {
   return `${timestamp} [${level.toUpperCase()}]: ${stack || message}`;
 });
 
-// Create logger instance
 const logger = winston.createLogger({
   level: "info", // default level
   format: winston.format.combine(
@@ -21,7 +19,6 @@ const logger = winston.createLogger({
   ],
 });
 
-// If not in production, also log to console with colors
 if (process.env.NODE_ENV === "local") {
   logger.add(new winston.transports.Console({
     format: winston.format.combine(
