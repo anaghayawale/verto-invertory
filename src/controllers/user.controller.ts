@@ -6,6 +6,8 @@ import { Roles } from "../constants";
 import { User } from "../models/user.model";
 import { validateLoginData } from "../utils/validations/validateLoginData";
 import { bodyDataExists } from "../utils/validations/bodyDataExists";
+import { logger } from "../utils/logger";
+import { asyncHandler } from "../utils/asyncHandler";
 
 const generateToken = (user: { _id: any; username: string; role: string }): string => {
   return jwt.sign(
@@ -20,7 +22,7 @@ const generateToken = (user: { _id: any; username: string; role: string }): stri
 };
 
 // -------------------------Create User -------------------------
-export const createUser = async (req: Request, res: Response) => {
+const createUser = asyncHandler(async (req: Request, res: Response) => {
   try {
     const { username, password, role } = req.body;
 
@@ -28,7 +30,7 @@ export const createUser = async (req: Request, res: Response) => {
       return res.status(409).json(new ApiError("Invalid Data",));
     }
 
-    const validData = validateLoginData(username, password, true, role)
+    const validData = validateLoginData(username, password, false, role)
     if(!validData.isValid){
       return res.status(409).json(new ApiError("Invalid Data", validData.errors));
     }
@@ -65,13 +67,13 @@ export const createUser = async (req: Request, res: Response) => {
       })
     );
   } catch (error: any) {
-    console.error(error);
+    logger.error(error);
     return res.status(500).json(new ApiError("Server Error"));
   }
-};
+});
 
 // -------------------------Login User -------------------------
-export const loginUser = async (req: Request, res: Response) => {
+const loginUser = asyncHandler(async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
 
@@ -79,7 +81,7 @@ export const loginUser = async (req: Request, res: Response) => {
       return res.status(409).json(new ApiError("Invalid Data",));
     }
 
-    const validData = validateLoginData(username, password, false)
+    const validData = validateLoginData(username, password, true)
     if(!validData.isValid){
       return res.status(409).json(new ApiError("Invalid Data", validData.errors));
     }
@@ -109,12 +111,13 @@ export const loginUser = async (req: Request, res: Response) => {
       token: token
     }));
   } catch (error) {
+    logger.error("ERROR: ",error)
     return res.status(500).json(new ApiError("Server Error"));
   }
-};
+});
 
 // -------------------------Logout User -------------------------
-export const logoutUser = async (req: Request, res: Response) => {
+const logoutUser = asyncHandler(async (_, res: Response) => {
   try {
     res.clearCookie("token", {
       httpOnly: true,
@@ -126,9 +129,10 @@ export const logoutUser = async (req: Request, res: Response) => {
       .status(200)
       .json(new ApiResponse(200, "Logout successful"));
   } catch (error) {
+    logger.error("ERROR: ",error)
     return res.status(500).json({ message: "Server Error" });
   }
-};
+});
 
-
+export { createUser, loginUser, logoutUser}
 

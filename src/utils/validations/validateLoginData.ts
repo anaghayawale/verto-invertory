@@ -32,10 +32,6 @@ function validateLoginData(
     if (!role || !Object.values(Roles).includes(role)) {
       errors.push(`Role is required and must be one of: ${Object.values(Roles).join(", ")}`);
     }
-  } else {
-    if (role !== undefined && !Object.values(Roles).includes(role)) {
-      errors.push(`Role must be one of: ${Object.values(Roles).join(", ")}`);
-    }
   }
 
   return {

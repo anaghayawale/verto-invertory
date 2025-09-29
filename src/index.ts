@@ -7,7 +7,7 @@ dotenv.config({ path: "./.env" });
 
 connectDB().then(() => {
     app.on("error", (error) => {
-        console.error("ERROR: ",error)
+        logger.error("ERROR: ",error)
     })
 
     const PORT: number = Number(process.env.PORT) || 3000
@@ -15,5 +15,5 @@ connectDB().then(() => {
         logger.info(`VERTO INVENTORY RUNNING http://localhost:${process.env.PORT}`)
     })
 }).catch((err) => {
-    console.error("MONGODB CONNECTION FAILED:  ",err)
+    logger.error("MONGODB CONNECTION FAILED:  ",err)
 })

@@ -34,7 +34,7 @@ const addNewProduct = asyncHandler(
         .json(new ApiError("Error in adding product"));
     }
 
-    console.log("Product added:", savedProduct);
+    // console.log("Product added:", savedProduct);
 
     return res
       .status(201)

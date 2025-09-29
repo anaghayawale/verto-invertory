@@ -14,11 +14,9 @@ const connectDB = async (): Promise<void> => {
     );
 
     logger.info(`MongoDB connected !! DB host name: ${connectionInstance.connection.host}`);
-    // console.log(`\nMongoDB connected !! DB host name: ${connectionInstance.connection.host}\n`);
   } catch (error: unknown) {
     if (error instanceof Error) {
       logger.error("MONGODB CONNECTION FAILED:", error.message);
-      // console.error("MONGODB CONNECTION FAILED:", error.message);
     } else {
       logger.error("MONGODB CONNECTION FAILED: Unknown error");
     }
