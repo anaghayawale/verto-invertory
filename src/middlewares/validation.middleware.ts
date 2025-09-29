@@ -3,6 +3,7 @@ import { ApiResponse } from "../utils/ApiResponse";
 import { ApiError } from "../utils/ApiError";
 import { IProduct } from "../models/product.model";
 import { isEmptyValue, isNumber } from "../utils/validations/filterData";
+import { Roles } from "../constants";
 
 function validateCreateProduct(req: Request, res: Response, next: NextFunction): void {
   const product: IProduct = req.body;
@@ -72,12 +73,5 @@ function validateCreateProduct(req: Request, res: Response, next: NextFunction):
   next();
 }
 
-function validateRequestBody(req: Request, res: Response, next: NextFunction): void {
-  if (!req.body || Object.keys(req.body).length === 0) {
-    res.status(400).json(new ApiResponse(400, "Request body is required"));
-    return;
-  }
-  next();
-}
 
-export { validateCreateProduct, validateRequestBody };
+export { validateCreateProduct };

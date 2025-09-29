@@ -12,9 +12,7 @@ const version = asyncHandler(async function (_, res: Response){
 });
 
 const healthCheck = asyncHandler(async function (_, res: Response){
-    res.status(200).json(
-        new ApiResponse(200, "Health Check Passed")
-    );
+    res.status(200).json({message: "Pong"})
 });
 
 export { healthCheck, version }
