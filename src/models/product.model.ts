@@ -4,10 +4,11 @@ export interface IProduct extends Document {
   productId?: string;
   productName: string;
   description: string;
+  price: number;
   stockQuantity: number;
   lowStockThreshold: number;
-  createdBy: mongoose.Types.ObjectId;
-  updatedBy: mongoose.Types.ObjectId;
+  createdBy: string;
+  updatedBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,6 +28,11 @@ const ProductSchema: Schema<IProduct> = new Schema(
       trim: true,
       maxlength: [500, "Description cannot exceed 500 characters"],
     },
+    price: {
+      type: Number,
+      required: [true, "Product price is required"],
+      min: [0, "Price cannot be negative"],
+    },
     stockQuantity: {
       type: Number,
       required: [true, "Stock quantity is required"],
@@ -40,13 +46,11 @@ const ProductSchema: Schema<IProduct> = new Schema(
       default: 10,
     },
     createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      type: String,
       required: [true, "Created by user is required"],
     },
     updatedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      type: String,
       required: [true, "Updated by user is required"],
     },
   },

@@ -4,18 +4,23 @@ import jwt from "jsonwebtoken";
 import { Roles } from "../constants";
 import { logger } from "../utils/logger";
 import { asyncHandler } from "../utils/asyncHandler";
+import { User } from "../models/user.model"; // Import User model
 
-export interface AuthRequest extends Request {
-    user?: {
-        userId: string;
-        username: string;
-        role: string;
-    };
+declare global {
+    namespace Express {
+        interface Request {
+            user?: {
+                userId: string;
+                username: string;
+                role: string;
+            };
+        }
+    }
 }
 
 // -------------------------Verify Token -------------------------
 const verifyToken = asyncHandler(
-    async (req: AuthRequest, res: Response, next: NextFunction) => {
+    async (req: Request, res: Response, next: NextFunction) => {
         const accessToken = req.cookies?.token || req.header("Authorization")?.replace("Bearer ", "");
         if (!accessToken) {
             return res.status(401).json(new ApiError("Unauthorized"));
@@ -28,7 +33,11 @@ const verifyToken = asyncHandler(
                 role: string;
             };
 
-            req.user = decoded;
+            req.user = {
+                userId: decoded.userId,
+                username: decoded.username,
+                role: decoded.role,
+            };
             next();
         } catch (err) {
             logger.error("ERROR: ", err)
@@ -38,7 +47,7 @@ const verifyToken = asyncHandler(
 )
 
 // -------------------------Verify Admin Role --------------------
-const verifyAdmin = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+const verifyAdmin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
         return res.status(401).json(new ApiError("Forbidden"));
     }
@@ -51,7 +60,7 @@ const verifyAdmin = asyncHandler(async (req: AuthRequest, res: Response, next: N
 });
 
 // -------------------------Verify User Role --------------------
-const verifyUser = asyncHandler(async (req: AuthRequest, res: Response, next: NextFunction) => {
+const verifyUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
         return res.status(401).json(new ApiError("Forbidden"));
     }
