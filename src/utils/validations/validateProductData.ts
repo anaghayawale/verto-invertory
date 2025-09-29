@@ -1,33 +1,73 @@
 import { isNonEmptyString, isNumber } from "./helper";
 
-interface ProductData {
-  productName?: string;
-  description?: string;
-  price?: number;
-  stockQuantity?: number;
-  lowStockThreshold?: number;
+export interface ProductData {
+  productId?: string;
+  productName: string;
+  description: string;
+  price: number;
+  stockQuantity: number;
+  lowStockThreshold: number;
 }
 
-function validateProductData(product: ProductData) {
+function validateProductData(
+  product: Partial<ProductData>,
+  { isCreate = true }: { isCreate?: boolean } = {}
+) {
   const errors: string[] = [];
 
-  const nameError = isNonEmptyString(product.productName, 100, "Product name");
-  if (nameError) errors.push(nameError);
-
-  const descError = isNonEmptyString(product.description, 500, "Description");
-  if (descError) errors.push(descError);
-
-  const priceError = isNumber(product.price, "Price", { min: 0 });
-  if (priceError) errors.push(priceError);
-
-  const stockError = isNumber(product.stockQuantity, "Stock quantity", { min: 0, integer: true });
-  if (stockError) errors.push(stockError);
-
-  if (product.lowStockThreshold !== undefined) {
-    const lowStockError = isNumber(product.lowStockThreshold, "Low stock threshold", { min: 0, integer: true });
-    if (lowStockError) errors.push(lowStockError);
+  if (!isCreate) {
+    if (!product.productId || typeof product.productId !== "string" || product.productId.trim() === "") {
+      errors.push("productId is required for update and must be a non-empty string");
+    }
   }
-  
+
+   let hasUpdateField = false;
+
+  // Product name
+  if (isCreate || product.productName !== undefined) {
+    const nameError = isNonEmptyString(product.productName, 100, "Product name");
+    if (nameError) errors.push(nameError);
+    hasUpdateField = true
+  }
+
+  // Description
+  if (isCreate || product.description !== undefined) {
+    const descError = isNonEmptyString(product.description, 500, "Description");
+    if (descError) errors.push(descError);
+    hasUpdateField = true
+  }
+
+  // Price
+  if (isCreate || product.price !== undefined) {
+    const priceError = isNumber(product.price, "Price", { min: 0 });
+    if (priceError) errors.push(priceError);
+    hasUpdateField = true
+  }
+
+  // Stock Quantity
+  if (isCreate || product.stockQuantity !== undefined) {
+    const stockError = isNumber(product.stockQuantity, "Stock quantity", {
+      min: 0,
+      integer: true,
+    });
+    if (stockError) errors.push(stockError);
+    hasUpdateField = true
+  }
+
+  // Low Stock Threshold
+  if (isCreate || product.lowStockThreshold !== undefined) {
+    const lowStockError = isNumber(product.lowStockThreshold, "Low stock threshold", {
+      min: 0,
+      integer: true,
+    });
+    if (lowStockError) errors.push(lowStockError);
+    hasUpdateField = true
+  }
+
+   if (!isCreate && product.productId && !hasUpdateField) {
+    errors.push("At least one field (productName, description, price, stockQuantity, lowStockThreshold) must be provided to update");
+  }
+
   return {
     isValid: errors.length === 0,
     errors,
@@ -49,7 +89,7 @@ function validateProductsArray(products: ProductData[]) {
   }
 
   products.forEach((product, index) => {
-    const validation = validateProductData(product);
+    const validation = validateProductData(product, { isCreate : true});
 
     if (!validation.isValid) {
       validation.errors.forEach((error) => {
