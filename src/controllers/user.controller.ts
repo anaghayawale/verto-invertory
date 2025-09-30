@@ -23,7 +23,6 @@ const generateToken = (user: { _id: any; username: string; role: string }): stri
 
 // -------------------------Create User -------------------------
 const createUser = asyncHandler(async (req: Request, res: Response) => {
-  try {
     const { username, password, role } = req.body;
 
     if(bodyDataExists(username, password, role)){
@@ -66,15 +65,10 @@ const createUser = asyncHandler(async (req: Request, res: Response) => {
         token: token
       })
     );
-  } catch (error: any) {
-    logger.error(error);
-    return res.status(500).json(new ApiError("Server Error"));
-  }
 });
 
 // -------------------------Login User -------------------------
 const loginUser = asyncHandler(async (req: Request, res: Response) => {
-  try {
     const { username, password } = req.body;
 
     if(bodyDataExists(username, password)){
@@ -110,15 +104,10 @@ const loginUser = asyncHandler(async (req: Request, res: Response) => {
       role: user.role,
       token: token
     }));
-  } catch (error) {
-    logger.error("ERROR: ",error)
-    return res.status(500).json(new ApiError("Server Error"));
-  }
 });
 
 // -------------------------Logout User -------------------------
 const logoutUser = asyncHandler(async (_, res: Response) => {
-  try {
     res.clearCookie("token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -128,10 +117,6 @@ const logoutUser = asyncHandler(async (_, res: Response) => {
     return res
       .status(200)
       .json(new ApiResponse(200, "Logout successful"));
-  } catch (error) {
-    logger.error("ERROR: ",error)
-    return res.status(500).json({ message: "Server Error" });
-  }
 });
 
 export { createUser, loginUser, logoutUser}
