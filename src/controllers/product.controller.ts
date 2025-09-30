@@ -7,6 +7,7 @@ import { validateProductData, validateProductsArray } from "../utils/validations
 import { logger } from "../utils/logger";
 import mongoose from "mongoose";
 import { createPaginationResponse, getPaginationParams } from "../utils/pagination";
+import { cacheService, CacheService } from "../utils/cache";
 
 //------------------------- Add New Product -------------------------
 const createProduct = asyncHandler(async (req: Request, res: Response) => {
@@ -18,7 +19,6 @@ const createProduct = asyncHandler(async (req: Request, res: Response) => {
 
   let productsData = Array.isArray(req.body) ? req.body : [req.body];
   const validation = validateProductsArray(productsData);
-
   if (!validation.isValid) {
     return res.status(409).json(new ApiError("Validation failed", validation.errors));
   }
@@ -29,7 +29,6 @@ const createProduct = asyncHandler(async (req: Request, res: Response) => {
       $in: productNames.map((name) => new RegExp(`^${name}$`, "i")),
     },
   });
-
   if (existingProducts.length > 0) {
     const existingNames = existingProducts.map((p) => p.productName);
     return res.status(409).json(new ApiError(
@@ -71,17 +70,31 @@ const createProduct = asyncHandler(async (req: Request, res: Response) => {
 //------------------------- Get All Products -------------------------
 const getAllProducts = asyncHandler(async (req: Request, res: Response) => {
   const { page, limit, skip } = getPaginationParams(req.query)
+  const cacheKey = CacheService.generateProductKey(page, limit)
+
+  const cachedData = cacheService.get(cacheKey);
+  if(cachedData){
+    logger.info('Products retrieved from cache', {page, limit});
+    return res.status(200).json(
+    new ApiResponse(
+      200,
+      "Products fetched successfully",
+      cachedData
+    )
+  );
+  }
 
   const totalProducts = await Product.countDocuments();
-
   const products = await Product.find().skip(skip).limit(limit).sort({ createdAt: -1 });
-
+  
   const paginationResponse = createPaginationResponse(
     products.map(p => p.toJSON()),
     page,
     limit,
     totalProducts
   )
+
+  cacheService.set(cacheKey, paginationResponse, 5 * 60);
 
   return res.status(200).json(
     new ApiResponse(
@@ -97,7 +110,6 @@ const getProductById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
 
   const product: IProduct | null = await Product.findById(id);
-
   if (!product) {
     return res.status(404).json(
       new ApiError("Product not found", [`Product with id: ${id} does not exist.`])
@@ -127,10 +139,13 @@ const updateProduct = asyncHandler(async (req: Request, res: Response) => {
     { ...updateData, updatedBy: req.user?.username },
     { new: true }
   );
-
   if (!updated) {
     return res.status(404).json(new ApiError("Product not found"));
   }
+
+  cacheService.clearByPattern('product:')
+  cacheService.clearByPattern('products:low-stock')
+  cacheService.del(CacheService.generateSingleProductKey(updateData.productId))
 
   return res.status(200).json(new ApiResponse(200, "Product updated successfully", updated));
 });
@@ -156,6 +171,10 @@ const deleteProductById = asyncHandler(async (req: Request, res: Response) => {
   }
 
   await Product.findByIdAndDelete(id);
+
+  cacheService.clearByPattern('product:')
+  cacheService.clearByPattern('products:low-stock')
+  cacheService.del(CacheService.generateSingleProductKey(id))
 
   logger.info(`Product ${id} deleted by user ${userId}`);
 
@@ -225,6 +244,12 @@ const deleteProducts = asyncHandler(async (req: Request, res: Response) => {
 
   const result = await Product.deleteMany({ _id: { $in: productIds } });
 
+  cacheService.clearByPattern('product:')
+  cacheService.clearByPattern('products:low-stock')
+  productIds.forEach((id: string) => {
+    cacheService.del(CacheService.generateSingleProductKey(id));
+  });
+
   logger.info(`Deleted ${result.deletedCount} product(s): [${productIds.join(", ")}] by user ${userId}`);
 
   return res.status(200).json(
@@ -238,6 +263,19 @@ const deleteProducts = asyncHandler(async (req: Request, res: Response) => {
 //------------------------- Get Low Stock Products -------------------------
 const getLowStockProducts = asyncHandler(async (req: Request, res: Response) => {
   const { page, limit, skip } = getPaginationParams(req.query)
+  const cacheKey = CacheService.generateLowStockKey + `:page:${page}:limit:${limit}`
+
+  const cachedData = cacheService.get(cacheKey);
+  if(cachedData){
+     logger.info('Low stock products retrieved from cache', {page, limit});
+    return res.status(200).json(
+    new ApiResponse(
+      200,
+      "Low stock products fetched successfully",
+      cachedData
+    )
+  );
+  }
 
   const totalLowStockProducts = await Product.countDocuments({
     $expr: { $lte: ["$stockQuantity", "$lowStockThreshold"] }
@@ -262,6 +300,7 @@ const getLowStockProducts = asyncHandler(async (req: Request, res: Response) => 
     totalLowStockProducts
   )
 
+  cacheService.set(cacheKey, paginatedResponse, 2 * 60);
 
   return res.status(200).json(
     new ApiResponse(
