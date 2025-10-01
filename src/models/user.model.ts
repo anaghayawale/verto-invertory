@@ -10,7 +10,7 @@ export interface IUser extends Document {
   role: Roles;
   createdAt: Date;
   updatedAt: Date;
-comparePassword(candidatePassword: string): Promise<boolean>;
+  comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
 const UserSchema: Schema<IUser> = new Schema(

@@ -4,9 +4,8 @@ import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { Roles } from "../constants";
 import { User } from "../models/user.model";
-import { validateLoginData } from "../utils/validations/validateLoginData";
-import { bodyDataExists } from "../utils/validations/bodyDataExists";
-import { logger } from "../utils/logger";
+import { validateLoginData, validateRegisterData, LoginData, RegisterData } from "../utils/validations/userDataValidation";
+import { bodyDataExists } from "../utils/validations/helper";
 import { asyncHandler } from "../utils/asyncHandler";
 
 const generateToken = (user: { _id: any; username: string; role: string }): string => {
@@ -23,29 +22,30 @@ const generateToken = (user: { _id: any; username: string; role: string }): stri
 
 // -------------------------Create User -------------------------
 const createUser = asyncHandler(async (req: Request, res: Response) => {
-    const { username, password, role } = req.body;
+    const userData: RegisterData = req.body;
 
-    if(bodyDataExists(username, password, role)){
-      return res.status(409).json(new ApiError("Invalid Data",));
+    if(bodyDataExists(userData.username, userData.password, userData.role)){
+      return res.status(400).json(new ApiError("Missing required fields"));
     }
 
-    const validData = validateLoginData(username, password, false, role)
+    const validData = validateRegisterData(userData);
     if(!validData.isValid){
-      return res.status(409).json(new ApiError("Invalid Data", validData.errors));
+      return res.status(400).json(new ApiError("Invalid Data", validData.errors));
     }
 
-    const existingUser = await User.findOne({ username: username.toLowerCase().trim() });
+    const existingUser = await User.findOne({ username: userData.username.toLowerCase().trim() });
     if (existingUser) {
       return res.status(409).json(new ApiError("Username already exists"));
     }
 
     const newUser = await User.create({
-      username,
-      password,
-      role: role && Object.values(Roles).includes(role) ? role : Roles.USER,
+      username: userData.username,
+      password: userData.password,
+      role: userData.role && Object.values(Roles).includes(userData.role) ? userData.role : Roles.USER,
     });
+    
     if (!newUser) {
-      return res.status(401).json(new ApiError("Error creating user"));
+      return res.status(500).json(new ApiError("Error creating user"));
     }
 
     const token = generateToken(newUser);
@@ -69,23 +69,23 @@ const createUser = asyncHandler(async (req: Request, res: Response) => {
 
 // -------------------------Login User -------------------------
 const loginUser = asyncHandler(async (req: Request, res: Response) => {
-    const { username, password } = req.body;
+    const loginData: LoginData = req.body;
 
-    if(bodyDataExists(username, password)){
-      return res.status(409).json(new ApiError("Invalid Data",));
+    if(bodyDataExists(loginData.username, loginData.password)){
+      return res.status(400).json(new ApiError("Missing required fields"));
     }
 
-    const validData = validateLoginData(username, password, true)
+    const validData = validateLoginData(loginData);
     if(!validData.isValid){
-      return res.status(409).json(new ApiError("Invalid Data", validData.errors));
+      return res.status(400).json(new ApiError("Invalid Data", validData.errors));
     }
 
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ username: loginData.username });
     if (!user) {
-      return res.status(401).json(new ApiError("Invalid username or password" ));
+      return res.status(401).json(new ApiError("Invalid username or password"));
     }
 
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await user.comparePassword(loginData.password);
     if (!isMatch) {
       return res.status(401).json(new ApiError("Invalid username or password"));
     }
@@ -119,5 +119,4 @@ const logoutUser = asyncHandler(async (_, res: Response) => {
       .json(new ApiResponse(200, "Logout successful"));
 });
 
-export { createUser, loginUser, logoutUser}
-
+export { createUser, loginUser, logoutUser }

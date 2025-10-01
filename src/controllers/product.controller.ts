@@ -7,21 +7,30 @@ import { logger } from "../utils/logger";
 import mongoose from "mongoose";
 import { createPaginationResponse, getPaginationParams } from "../utils/pagination";
 import { cacheService, CacheService } from "../utils/cache";
-import { CreateProductData, StockOperationData, UpdateProductData, validateProductId, validateProductsArray, validateStockOperation, validateUpdateProduct } from "../utils/validations/productValidation";
-import { log } from "console";
+import { 
+  CreateProductData, 
+  StockOperationData, 
+  UpdateProductData, 
+  validateProductId, 
+  validateProductsArray, 
+  validateStockOperation, 
+  validateUpdateProduct 
+} from "../utils/validations/productValidation";
 
 //------------------------- Add New Product -------------------------
 const createProduct = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.userId;
   const username = req.user?.username;
+  
   if (!userId) {
-    return res.status(409).json(new ApiError("User authentication required"));
+    return res.status(401).json(new ApiError("User authentication required"));
   }
 
-  let productsData: CreateProductData[] = Array.isArray(req.body) ? req.body : [req.body];
+  const productsData: CreateProductData[] = Array.isArray(req.body) ? req.body : [req.body];
+  
   const validation = validateProductsArray(productsData);
   if (!validation.isValid) {
-    return res.status(409).json(new ApiError("Validation failed", validation.errors));
+    return res.status(400).json(new ApiError("Validation failed", validation.errors));
   }
 
   const productNames = productsData.map((p) => p.productName);
@@ -30,6 +39,7 @@ const createProduct = asyncHandler(async (req: Request, res: Response) => {
       $in: productNames.map((name) => new RegExp(`^${name}$`, "i")),
     },
   });
+  
   if (existingProducts.length > 0) {
     const existingNames = existingProducts.map((p) => p.productName);
     return res.status(409).json(new ApiError(
@@ -65,50 +75,49 @@ const createProduct = asyncHandler(async (req: Request, res: Response) => {
       }
     )
   );
-}
-);
+});
 
 //------------------------- Get All Products -------------------------
 const getAllProducts = asyncHandler(async (req: Request, res: Response) => {
-  const { page, limit, skip } = getPaginationParams(req.query)
-  const cacheKey = CacheService.generateProductKey(page, limit)
+  const { page, limit, skip } = getPaginationParams(req.query);
+  const cacheKey = CacheService.generateProductKey(page, limit);
 
   const cachedData = cacheService.get(cacheKey);
-  if(cachedData){
-    logger.info('Products retrieved from cache', {page, limit});
+  if (cachedData) {
+    logger.info('Products retrieved from cache', { page, limit });
     return res.status(200).json(
-    new ApiResponse(
-      200,
-      "Products fetched successfully",
-      cachedData
-    )
-  );
+      new ApiResponse(200, "Products fetched successfully", cachedData)
+    );
   }
 
   const totalProducts = await Product.countDocuments();
-  const products = await Product.find().skip(skip).limit(limit).sort({ createdAt: -1 });
+  const products = await Product.find()
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 });
   
   const paginationResponse = createPaginationResponse(
     products.map(p => p.toJSON()),
     page,
     limit,
     totalProducts
-  )
+  );
 
   cacheService.set(cacheKey, paginationResponse, 5 * 60);
 
   return res.status(200).json(
-    new ApiResponse(
-      200,
-      "Products fetched successfully",
-      paginationResponse
-    )
+    new ApiResponse(200, "Products fetched successfully", paginationResponse)
   );
 });
 
 //------------------------- Get Product By ID -------------------------
 const getProductById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
+
+  const isValidId = validateProductId(id);
+  if (!isValidId.isValid) {
+    return res.status(400).json(new ApiError("Invalid product ID", isValidId.errors));
+  }
 
   const product: IProduct | null = await Product.findById(id);
   if (!product) {
@@ -118,11 +127,7 @@ const getProductById = asyncHandler(async (req: Request, res: Response) => {
   }
 
   return res.status(200).json(
-    new ApiResponse(
-      200,
-      "Product fetched successfully",
-      product.toJSON()
-    )
+    new ApiResponse(200, "Product fetched successfully", product.toJSON())
   );
 });
 
@@ -140,16 +145,18 @@ const updateProduct = asyncHandler(async (req: Request, res: Response) => {
     { ...updateData, updatedBy: req.user?.username },
     { new: true }
   );
+  
   if (!updated) {
     return res.status(404).json(new ApiError("Product not found"));
   }
 
-  cacheService.clearByPattern('product:')
-  cacheService.clearByPattern('products:low-stock')
-  cacheService.del(CacheService.generateSingleProductKey(updateData.productId))
+  cacheService.clearByPattern('product:');
+  cacheService.clearByPattern('products:low-stock');
+  cacheService.del(CacheService.generateSingleProductKey(updateData.productId));
 
-  return res.status(200)
-    .json(new ApiResponse(200, `Product updated successfully.`, updated));
+  return res.status(200).json(
+    new ApiResponse(200, "Product updated successfully", updated.toJSON())
+  );
 });
 
 //------------------------- Delete Product by ID -------------------------
@@ -158,12 +165,12 @@ const deleteProductById = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.userId;
 
   if (!userId) {
-    return res.status(401).json(new ApiError("Unauthorised", ["User authentication required"]));
+    return res.status(401).json(new ApiError("Unauthorized", ["User authentication required"]));
   }
 
-  let isValidId = validateProductId(id)
-  if (!isValidId) {
-    return res.status(400).json(new ApiError("Invalid Data", [`Invalid product Id : ${id}`]));
+  const isValidId = validateProductId(id);
+  if (!isValidId.isValid) {
+    return res.status(400).json(new ApiError("Invalid product ID", isValidId.errors));
   }
 
   const product: IProduct | null = await Product.findById(id);
@@ -175,64 +182,64 @@ const deleteProductById = asyncHandler(async (req: Request, res: Response) => {
 
   await Product.findByIdAndDelete(id);
 
-  cacheService.clearByPattern('product:')
-  cacheService.clearByPattern('products:low-stock')
-  cacheService.del(CacheService.generateSingleProductKey(id))
+  cacheService.clearByPattern('product:');
+  cacheService.clearByPattern('products:low-stock');
+  cacheService.del(CacheService.generateSingleProductKey(id));
 
   logger.info(`Product ${id} deleted by user ${userId}`);
 
   return res.status(200).json(
-    new ApiResponse(
-      200,
-      "Product deleted successfully",
-      { productId: id }
-    )
+    new ApiResponse(200, "Product deleted successfully", { productId: id })
   );
 });
 
-//------------------------- Delete Product in bulk -------------------------
+//------------------------- Delete Products in Bulk -------------------------
 const deleteProducts = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.userId;
   const { productIds } = req.body;
 
   if (!userId) {
-    return res
-      .status(401)
-      .json(new ApiError("Unauthorized", ["User authentication required"]));
+    return res.status(401).json(
+      new ApiError("Unauthorized", ["User authentication required"])
+    );
   }
 
   if (!Array.isArray(productIds) || productIds.length === 0) {
-    return res
-      .status(400)
-      .json(new ApiError("Invalid Data", ["Provide a non-empty array of productIds"]));
+    return res.status(400).json(
+      new ApiError("Invalid Data", ["Provide a non-empty array of productIds"])
+    );
   }
 
   const MAX_BULK_DELETE = 10;
   if (productIds.length > MAX_BULK_DELETE) {
-    return res
-      .status(400)
-      .json(new ApiError("Invalid data", [`Cannot delete more than ${MAX_BULK_DELETE} products at once. Received ${productIds.length} IDs.`]));
+    return res.status(400).json(
+      new ApiError(
+        "Invalid Data", 
+        [`Cannot delete more than ${MAX_BULK_DELETE} products at once. Received ${productIds.length} IDs.`]
+      )
+    );
   }
 
   const invalidIds = productIds.filter(
     (id) => typeof id !== "string" || !mongoose.Types.ObjectId.isValid(id)
   );
   if (invalidIds.length > 0) {
-    return res
-      .status(400)
-      .json(new ApiError("Invalid Data", invalidIds.map((id) => `Invalid product id: ${id}`)));
+    return res.status(400).json(
+      new ApiError("Invalid Data", invalidIds.map((id) => `Invalid product id: ${id}`))
+    );
   }
 
   const seen = new Set<string>();
-  const dupes = new Set<string>();
+  const duplicates = new Set<string>();
   for (const id of productIds) {
-    if (seen.has(id)) dupes.add(id);
+    if (seen.has(id)) duplicates.add(id);
     seen.add(id);
   }
-  if (dupes.size > 0) {
-    return res
-      .status(400)
-      .json(new ApiError("Invalid Data", [`Duplicate product ids in request: ${[...dupes].join(", ")}`]));
+  
+  if (duplicates.size > 0) {
+    return res.status(400).json(
+      new ApiError("Invalid Data", [`Duplicate product ids in request: ${[...duplicates].join(", ")}`])
+    );
   }
 
   const existing = await Product.find({ _id: { $in: productIds } }, { _id: 1 }).lean();
@@ -240,15 +247,15 @@ const deleteProducts = asyncHandler(async (req: Request, res: Response) => {
 
   const missingIds = productIds.filter((id) => !foundIds.has(id));
   if (missingIds.length > 0) {
-    return res
-      .status(404)
-      .json(new ApiError("Products not found", missingIds.map((id) => `Product with id ${id} does not exist`)));
+    return res.status(404).json(
+      new ApiError("Products not found", missingIds.map((id) => `Product with id ${id} does not exist`))
+    );
   }
 
   const result = await Product.deleteMany({ _id: { $in: productIds } });
 
-  cacheService.clearByPattern('product:')
-  cacheService.clearByPattern('products:low-stock')
+  cacheService.clearByPattern('product:');
+  cacheService.clearByPattern('products:low-stock');
   productIds.forEach((id: string) => {
     cacheService.del(CacheService.generateSingleProductKey(id));
   });
@@ -265,43 +272,39 @@ const deleteProducts = asyncHandler(async (req: Request, res: Response) => {
 
 //------------------------- Get Low Stock Products -------------------------
 const getLowStockProducts = asyncHandler(async (req: Request, res: Response) => {
-  const { page, limit, skip } = getPaginationParams(req.query)
-  const cacheKey = CacheService.generateLowStockKey + `:page:${page}:limit:${limit}`
+  const { page, limit, skip } = getPaginationParams(req.query);
+  const cacheKey = `${CacheService.generateLowStockKey}:page:${page}:limit:${limit}`;
 
   const cachedData = cacheService.get(cacheKey);
-  if(cachedData){
-     logger.info('Low stock products retrieved from cache', {page, limit});
+  if (cachedData) {
+    logger.info('Low stock products retrieved from cache', { page, limit });
     return res.status(200).json(
-    new ApiResponse(
-      200,
-      "Low stock products fetched successfully",
-      cachedData
-    )
-  );
+      new ApiResponse(200, "Low stock products fetched successfully", cachedData)
+    );
   }
 
   const totalLowStockProducts = await Product.countDocuments({
     $expr: { $lte: ["$stockQuantity", "$lowStockThreshold"] }
-  })
+  });
 
   const products = await Product.find({
     $expr: { $lte: ["$stockQuantity", "$lowStockThreshold"] }
   })
     .skip(skip)
     .limit(limit)
-    .sort({ stockQuantity: 1 })
+    .sort({ stockQuantity: 1 });
 
   const stockDeficitAdded = products.map(p => ({
     ...p.toJSON(),
     stockDeficit: p.lowStockThreshold - p.stockQuantity
-  }))
+  }));
 
   const paginatedResponse = createPaginationResponse(
     stockDeficitAdded,
     page,
     limit,
     totalLowStockProducts
-  )
+  );
 
   cacheService.set(cacheKey, paginatedResponse, 2 * 60);
 
@@ -318,14 +321,12 @@ const getLowStockProducts = asyncHandler(async (req: Request, res: Response) => 
 
 //------------------------- Increase Stock Quantity -------------------------
 const increaseStockQuantity = asyncHandler(async (req: Request, res: Response) => {
-  const stock : StockOperationData = req.body;
+  const stock: StockOperationData = req.body;
   const username = req.user?.username;
   
-  const isValidData = validateStockOperation(stock)
-  if(!isValidData.isValid){
-    return res
-      .status(404)
-      .json(new ApiError("Invalid Data", isValidData.errors));
+  const isValidData = validateStockOperation(stock);
+  if (!isValidData.isValid) {
+    return res.status(400).json(new ApiError("Invalid Data", isValidData.errors));
   }
   
   const existingProduct = await Product.findById(stock.productId);
@@ -336,98 +337,100 @@ const increaseStockQuantity = asyncHandler(async (req: Request, res: Response) =
   const newStockQuantity = existingProduct.stockQuantity + stock.stockQuantity;
   
   const updatedProduct = await Product.findByIdAndUpdate(
-      stock.productId,
-      { 
-        stockQuantity: newStockQuantity,
-        updatedBy: username 
-      }
-    );
+    stock.productId,
+    { 
+      stockQuantity: newStockQuantity,
+      updatedBy: username 
+    },
+    { new: true }
+  );
     
-    if(!updatedProduct){
-      return res.status(404).json(new ApiError("Error Updating Stock Quantity"));
-    }
-    cacheService.clearByPattern('product:')
-    cacheService.clearByPattern('products:low-stock')
-    cacheService.del(CacheService.generateSingleProductKey(existingProduct.productId))
+  if (!updatedProduct) {
+    return res.status(500).json(new ApiError("Error updating stock quantity"));
+  }
 
-    const isLowStock = newStockQuantity <= existingProduct.lowStockThreshold;
+  cacheService.clearByPattern('product:');
+  cacheService.clearByPattern('products:low-stock');
+  cacheService.del(CacheService.generateSingleProductKey(existingProduct.productId));
+
+  const isLowStock = newStockQuantity <= existingProduct.lowStockThreshold;
     
-    return res.status(200).json(
-      new ApiResponse(
-        200,
-        "Stock quantity increased successfully",
-        {
-          productId: updatedProduct?.productId,
-          productName: updatedProduct?.productName,
-          previousStock: existingProduct.stockQuantity,
-          newStock: newStockQuantity,
-          updatedBy: username,
-          lowStockThreshold: updatedProduct?.lowStockThreshold,
-          stockDeficit: isLowStock ? existingProduct.lowStockThreshold <= newStockQuantity : 0
-        }
-      )
-    );
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      "Stock quantity increased successfully",
+      {
+        productId: updatedProduct.productId,
+        productName: updatedProduct.productName,
+        previousStock: existingProduct.stockQuantity,
+        newStock: newStockQuantity,
+        updatedBy: username,
+        lowStockThreshold: updatedProduct.lowStockThreshold,
+        stockDeficit: isLowStock ? existingProduct.lowStockThreshold - newStockQuantity : 0
+      }
+    )
+  );
 });
-//------------------------- Descrese Stock Quantity -------------------------
+
+//------------------------- Decrease Stock Quantity -------------------------
 const decreaseStockQuantity = asyncHandler(async (req: Request, res: Response) => {
-  const stock : StockOperationData = req.body;
+  const stock: StockOperationData = req.body;
   const username = req.user?.username;
   
-  const isValidData = validateStockOperation(stock)
-  if(!isValidData.isValid){
-    return res
-      .status(404)
-      .json(new ApiError("Invalid Data", isValidData.errors));
+  const isValidData = validateStockOperation(stock);
+  if (!isValidData.isValid) {
+    return res.status(400).json(new ApiError("Invalid Data", isValidData.errors));
   }
   
   const existingProduct = await Product.findById(stock.productId);
-  
   if (!existingProduct) {
     return res.status(404).json(new ApiError("Product not found"));
   }
 
   if (stock.stockQuantity > existingProduct.stockQuantity) {
-        return res.status(400).json(
-          new ApiError("Insufficient Stock", [
-            `Cannot remove ${stock.stockQuantity} units. Only ${existingProduct.stockQuantity} units available in stock.`
-          ])
-        );
-      }
+    return res.status(400).json(
+      new ApiError("Insufficient Stock", [
+        `Cannot remove ${stock.stockQuantity} units. Only ${existingProduct.stockQuantity} units available in stock.`
+      ])
+    );
+  }
 
   const newStockQuantity = existingProduct.stockQuantity - stock.stockQuantity;
     
   const updatedProduct = await Product.findByIdAndUpdate(
-      stock.productId,
-      { 
-        stockQuantity: newStockQuantity,
-        updatedBy: username 
-      }
-    );
+    stock.productId,
+    { 
+      stockQuantity: newStockQuantity,
+      updatedBy: username 
+    },
+    { new: true }
+  );
   
-    if(!updatedProduct){
-      return res.status(404).json(new ApiError("Error Updating Stock Quantity"));
-    }
-    cacheService.clearByPattern('product:')
-    cacheService.clearByPattern('products:low-stock')
-    cacheService.del(CacheService.generateSingleProductKey(existingProduct.productId))
+  if (!updatedProduct) {
+    return res.status(500).json(new ApiError("Error updating stock quantity"));
+  }
 
-    const isLowStock = newStockQuantity <= existingProduct.lowStockThreshold;
+  cacheService.clearByPattern('product:');
+  cacheService.clearByPattern('products:low-stock');
+  cacheService.del(CacheService.generateSingleProductKey(existingProduct.productId));
+
+  const isLowStock = newStockQuantity <= existingProduct.lowStockThreshold;
     
-    return res.status(200).json(
-      new ApiResponse(
-        200,
-        "Stock quantity decrease successfully",
-        {
-          productId: updatedProduct?.productId,
-          productName: updatedProduct?.productName,
-          previousStock: existingProduct.stockQuantity,
-          newStock: newStockQuantity,
-          updatedBy: username,
-          lowStockThreshold: updatedProduct?.lowStockThreshold,
-          stockDeficit: isLowStock ? existingProduct.lowStockThreshold <= newStockQuantity : 0
-        }
-      )
-    );
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      "Stock quantity decreased successfully",
+      {
+        productId: updatedProduct.productId,
+        productName: updatedProduct.productName,
+        previousStock: existingProduct.stockQuantity,
+        newStock: newStockQuantity,
+        updatedBy: username,
+        lowStockThreshold: updatedProduct.lowStockThreshold,
+        stockDeficit: isLowStock ? existingProduct.lowStockThreshold - newStockQuantity : 0
+      }
+    )
+  );
 });
 
 export {

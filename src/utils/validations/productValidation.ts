@@ -1,5 +1,4 @@
-import { logger } from "../logger";
-import { isNonEmptyString, isNumber } from "./helper";
+import { isNonEmptyString, isNumber, validationResult } from "./helper";
 import mongoose from "mongoose";
 
 export interface CreateProductData {
@@ -17,11 +16,6 @@ export interface UpdateProductData extends Partial<CreateProductData>{
 export interface StockOperationData {
     productId: string;
     stockQuantity: number;
-}
-
-export interface validationResult {
-    isValid: boolean;
-    errors: string[];
 }
 
 export function validateCreateProduct(product: CreateProductData): validationResult {

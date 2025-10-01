@@ -1,6 +1,6 @@
 class ApiError extends Error {
   public success: boolean;
-  public errors: string[];
+  public errors?: string[];
   public msg: string;
 
   constructor(
@@ -12,7 +12,9 @@ class ApiError extends Error {
 
     this.success = false;
     this.msg = message;
-    this.errors = errors;
+    if(errors){
+      this.errors = errors;
+    }
 
     if (stack) {
       this.stack = stack;
