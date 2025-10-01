@@ -4,7 +4,6 @@ import jwt from "jsonwebtoken";
 import { Roles } from "../constants";
 import { logger } from "../utils/logger";
 import { asyncHandler } from "../utils/asyncHandler";
-import { User } from "../models/user.model"; // Import User model
 
 declare global {
     namespace Express {
