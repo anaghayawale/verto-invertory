@@ -9,9 +9,10 @@ function isNonEmptyString(value: unknown, maxLength: number, field: string): str
   return null;
 }
 
-function isNumber(value: unknown, field: string, { min, integer }: { min?: number; integer?: boolean } = {}): string | null {
+function isNumber(value: unknown, field: string, { min, max, integer }: { min?: number; max?: number; integer?: boolean } = {}): string | null {
   if (typeof value !== "number" || Number.isNaN(value)) return `${field} must be a number`;
   if (min !== undefined && value < min) return `${field} cannot be less than ${min}`;
+  if (max !== undefined && value > max) return `${field} cannot be less than ${max}`
   if (integer && !Number.isInteger(value)) return `${field} must be an integer`;
   return null;
 }
