@@ -6,32 +6,12 @@ class CacheService {
 
   constructor() {
     this.cache = new NodeCache({
-      stdTTL: 300, // 5 minutes default TTL (in seconds)
-      checkperiod: 120, // Check for expired keys every 2 minutes
-      useClones: false, // Don't clone objects for better performance
+      stdTTL: 300, // 5 minutes
+      checkperiod: 120, // 2 minutes
+      useClones: false,
       deleteOnExpire: true,
-      maxKeys: 1000, // Limit cache size
+      maxKeys: 1000,
       errorOnMissing: false
-    });
-
-    this.cache.on('set', (key: string) => {
-      logger.debug(`Cache SET: ${key}`);
-    });
-
-    this.cache.on('get', (key: string) => {
-      logger.debug(`Cache HIT: ${key}`);
-    });
-
-    this.cache.on('del', (key: string) => {
-      logger.debug(`Cache DELETE: ${key}`);
-    });
-
-    this.cache.on('expired', (key: string) => {
-      logger.debug(`Cache EXPIRED: ${key}`);
-    });
-
-    this.cache.on('flush', () => {
-      logger.info('Cache flushed');
     });
   }
 
@@ -39,6 +19,8 @@ class CacheService {
     const value = this.cache.get<T>(key);
     if (value === undefined) {
       logger.debug(`Cache MISS: ${key}`);
+    } else {
+      logger.debug(`Cache HIT: ${key}`);
     }
     return value;
   }
@@ -111,8 +93,7 @@ class CacheService {
   mset<T>(keyValuePairs: Array<{ key: string; val: T; ttl?: number }>): boolean {
     return this.cache.mset(keyValuePairs);
   }
-
-
+  
   static generateProductKey(page: number = 1, limit: number = 10, filters?: any): string {
     const filterStr = filters ? JSON.stringify(filters) : '';
     return `products:page:${page}:limit:${limit}:filters:${filterStr}`;
