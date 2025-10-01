@@ -13,7 +13,7 @@ const rateLimitErrorHandler = (req: Request, res: Response, message: string) => 
 
 const globalRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, 
-    max: 10, 
+    max: 100, 
     message: (req: Request, res: Response) => rateLimitErrorHandler(
         req, 
         res, 
