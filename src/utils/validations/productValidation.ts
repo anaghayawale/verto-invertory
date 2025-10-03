@@ -167,7 +167,7 @@ export function validateProductId(productId: unknown): validationResult {
 
     if (!productId || typeof productId !== "string" || productId.trim() === "") {
       errors.push("productId is required for update and must be a non-empty string");
-    } else if (mongoose.Types.ObjectId.isValid(productId)){
+    } else if (!mongoose.Types.ObjectId.isValid(productId)){
         errors.push("Invalid product Id");
     }
 
