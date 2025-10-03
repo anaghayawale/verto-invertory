@@ -1,5 +1,5 @@
 function isEmptyValue(value: unknown): boolean {
-    return (value === null || value === undefined || value === '');
+  return (value === null || value === undefined || value === '');
 }
 
 function isNonEmptyString(value: unknown, maxLength: number, field: string): string | null {
@@ -30,4 +30,25 @@ function isValidPassword(password: unknown): string | null {
   return null;
 }
 
-export { isEmptyValue, isNumber, isNonEmptyString, isValidPassword }
+interface validationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+function bodyDataExists(...fields: (string | number | undefined)[]): boolean {
+  return fields.includes(undefined) || fields.some((item) => {
+    if (typeof item === "string") {
+      return item.trim() === "";
+    }
+    return false;
+  });
+};
+
+export {
+  isEmptyValue,
+  isNumber,
+  isNonEmptyString, 
+  isValidPassword, 
+  validationResult, 
+  bodyDataExists
+}
