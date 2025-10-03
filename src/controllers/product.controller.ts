@@ -415,11 +415,13 @@ const decreaseStockQuantity = asyncHandler(async (req: Request, res: Response) =
   cacheService.del(CacheService.generateSingleProductKey(existingProduct.productId));
 
   const isLowStock = newStockQuantity <= existingProduct.lowStockThreshold;
-    
+  const message = isLowStock
+    ? `Stock decreased successfully. Warning: Stock is below the low stock threshold (${updatedProduct.lowStockThreshold}).`
+    : "Stock quantity decreased successfully";
   return res.status(200).json(
     new ApiResponse(
       200,
-      "Stock quantity decreased successfully",
+      message,
       {
         productId: updatedProduct.productId,
         productName: updatedProduct.productName,
